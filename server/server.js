@@ -16,6 +16,13 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/user", userRoutes); // ✅ Now this works
 
+const chatRoutes = require("./routes/chatRoutes");
+app.use("/api/chat", chatRoutes);
+
+const messageRoutes = require("./routes/messageRoutes");
+app.use("/api/message", messageRoutes);
+
+
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
