@@ -76,4 +76,26 @@ router.post("/login", async (req, res) => {
   });
 });
 
+
+router.get("/", protect, async (req, res) => {
+  const keyword = req.query.search
+    ? {
+        $or: [
+          { name: { $regex: req.query.search, $options: "i" } },
+          { email: { $regex: req.query.search, $options: "i" } },
+        ],
+      }
+    : {};
+
+  try {
+    const users = await User.find(keyword).find({
+      _id: { $ne: req.user._id },
+    });
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Search failed", error: err.message });
+  }
+});
+
+
 module.exports = router;

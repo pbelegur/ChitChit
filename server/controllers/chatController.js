@@ -67,4 +67,44 @@ const fetchChats = asyncHandler(async (req, res) => {
   }
 });
 
-module.exports = { accessChat, fetchChats };
+
+// @desc    Create a new group chat
+// @route   POST /api/chat/group
+// @access  Protected
+const createGroupChat = asyncHandler(async (req, res) => {
+  const { name, users } = req.body;
+
+  if (!name || !users) {
+    return res.status(400).json({ message: "All fields are required" });
+  }
+
+  if (users.length < 2) {
+    return res
+      .status(400)
+      .json({ message: "At least 2 other users are required to form a group chat" });
+  }
+
+  // Include the logged-in user in the group
+  users.push(req.user._id);
+
+  try {
+    const groupChat = await Chat.create({
+      chatName: name,
+      users: users,
+      isGroupChat: true,
+      groupAdmin: req.user._id,
+    });
+
+    const fullGroup = await groupChat
+      .populate("users", "-password")
+      .populate("groupAdmin", "-password");
+
+    res.status(201).json(fullGroup);
+  } catch (error) {
+    res.status(400).json({ message: "Failed to create group chat", error: error.message });
+  }
+});
+
+
+
+module.exports = { accessChat, fetchChats, createGroupChat };
