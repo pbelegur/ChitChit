@@ -48,9 +48,9 @@ const CreateGroupModal = ({ onGroupCreated }) => {
       const config = { headers: { Authorization: `Bearer ${token}` } };
       const { data } = await axios.post(
         "http://localhost:5000/api/chat/group",
-        {
-          name: groupName,
-          users: selectedUsers.map((u) => u._id),
+       {
+            name: groupName,
+            users: JSON.stringify(selectedUsers.map((u) => u._id)),
         },
         config
       );

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import socket from "../socket";
 import ChatBox from "../components/ChatBox";
-import SearchUsers from "../components/searchUsers"; 
+import SearchUsers from "../components/searchUsers";
 
 const ChatPage = () => {
   const [chats, setChats] = useState([]);
@@ -107,7 +107,11 @@ const ChatPage = () => {
 
       <div style={{ flex: 2 }}>
         {selectedChat ? (
-          <ChatBox selectedChat={selectedChat} />
+          <ChatBox
+            selectedChat={selectedChat}
+            refreshChats={fetchChats} // ✅ pass this to propagate updates
+            setSelectedChat={setSelectedChat} // optional if needed
+          />
         ) : (
           <div style={{ textAlign: "center", marginTop: "100px" }}>
             <h3>Select a chat to start messaging</h3>

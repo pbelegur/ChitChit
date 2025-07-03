@@ -1,19 +1,26 @@
 import React, { useEffect, useState, useRef } from "react";
 import axios from "axios";
 import socket from "../socket";
+import GroupSettingsModal from "./GroupSettingsModal";
 
-const ChatBox = ({ selectedChat }) => {
+const ChatBox = ({ selectedChat, refreshChats, setSelectedChat }) => {
   const [messages, setMessages] = useState([]);
   const [newMsg, setNewMsg] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
   const messageEndRef = useRef(null);
 
   useEffect(() => {
+    const userInfo = JSON.parse(localStorage.getItem("userInfo"));
+    setCurrentUser(userInfo);
+
     if (!selectedChat) return;
 
     const fetchMessages = async () => {
       try {
-        const { token } = JSON.parse(localStorage.getItem("userInfo"));
-        const config = { headers: { Authorization: `Bearer ${token}` } };
+        const config = {
+          headers: { Authorization: `Bearer ${userInfo.token}` },
+        };
 
         const { data } = await axios.get(
           `http://localhost:5000/api/message/${selectedChat._id}`,
@@ -57,7 +64,7 @@ const ChatBox = ({ selectedChat }) => {
         config
       );
 
-      socket.emit("send_message", data); // broadcast via socket
+      socket.emit("send_message", data);
       setMessages((prev) => [...prev, data]);
       setNewMsg("");
     } catch (error) {
@@ -76,8 +83,32 @@ const ChatBox = ({ selectedChat }) => {
         flexDirection: "column",
       }}
     >
+      {selectedChat.isGroupChat && (
+        <>
+          <button onClick={() => setShowSettings(true)}>⚙️ Group Settings</button>
+          {showSettings && (
+            <GroupSettingsModal
+              chat={selectedChat}
+              user={currentUser}
+              onClose={() => setShowSettings(false)}
+              updateChat={(updated) => {
+                setShowSettings(false);
+                setSelectedChat(updated);  // ✅ THIS is the key fix
+              }}
+              refreshChats={refreshChats}
+            />
+          )}
+        </>
+      )}
+
       <h3 style={{ marginBottom: "15px" }}>
-        Chat with {selectedChat.isGroupChat ? selectedChat.chatName : selectedChat.users.find(u => u._id !== JSON.parse(localStorage.getItem("userInfo"))._id)?.name}
+        Chat with{" "}
+        {selectedChat.isGroupChat
+          ? selectedChat.chatName
+          : selectedChat.users.find(
+              (u) =>
+                u._id !== JSON.parse(localStorage.getItem("userInfo"))._id
+            )?.name}
       </h3>
 
       <div
