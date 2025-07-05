@@ -8,6 +8,7 @@ function Register() {
     email: "",
     password: "",
     pic: "",
+    secretKey: "", // ✅ Added for secret chat feature
   });
 
   const navigate = useNavigate();
@@ -39,6 +40,7 @@ function Register() {
         <input name="email" placeholder="Email" onChange={handleChange} /><br />
         <input name="password" type="password" placeholder="Password" onChange={handleChange} /><br />
         <input name="pic" placeholder="Profile Pic URL" onChange={handleChange} /><br />
+        <input name="secretKey" placeholder="Secret Key (optional)" onChange={handleChange} /><br />
         <button type="submit">Register</button>
       </form>
     </div>

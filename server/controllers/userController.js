@@ -5,12 +5,12 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/Users");
 const { protect } = require("../middleware/authMiddleware");
 
-// 🔐 Get current user profile
+// Get current user profile
 router.get("/profile", protect, (req, res) => {
   res.json(req.user);
 });
 
-// 🔐 Register user
+// Register
 router.post("/register", async (req, res) => {
   const { name, email, password, pic, secretKey } = req.body;
 
@@ -23,6 +23,14 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ message: "User already exists" });
   }
 
+  // Check for duplicate secret key
+  if (secretKey) {
+    const existingKey = await User.findOne({ secretKey });
+    if (existingKey) {
+      return res.status(400).json({ message: "Secret key already in use" });
+    }
+  }
+
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -31,7 +39,7 @@ router.post("/register", async (req, res) => {
     email,
     password: hashedPassword,
     pic,
-    secretKey: secretKey || null, // ✅ Store secretKey if provided
+    secretKey: secretKey || null,
   });
 
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
@@ -43,12 +51,12 @@ router.post("/register", async (req, res) => {
     name: user.name,
     email: user.email,
     pic: user.pic,
-    secretKey: user.secretKey, // ✅ Include in response
+    secretKey: user.secretKey,
     token,
   });
 });
 
-// 🔐 Login user
+// Login
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
 
@@ -71,39 +79,21 @@ router.post("/login", async (req, res) => {
     name: user.name,
     email: user.email,
     pic: user.pic,
-    secretKey: user.secretKey, // ✅ Include secretKey so frontend can redirect
+    secretKey: user.secretKey,
     token,
   });
 });
 
-// 🔍 User search
-router.get("/", protect, async (req, res) => {
-  const keyword = req.query.search
-    ? {
-        $or: [
-          { name: { $regex: req.query.search, $options: "i" } },
-          { email: { $regex: req.query.search, $options: "i" } },
-        ],
-      }
-    : {};
-
-  try {
-    const users = await User.find(keyword).find({
-      _id: { $ne: req.user._id },
-    });
-    res.json(users);
-  } catch (err) {
-    res.status(500).json({ message: "Search failed", error: err.message });
-  }
-});
-
-// 🔁 Update secret key
-router.put("/update-secret", protect, async (req, res) => {
+// 🔐 Update secret key
+router.put("/secret-key", protect, async (req, res) => {
   const { secretKey } = req.body;
 
   const user = await User.findById(req.user._id);
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+  if (!user) return res.status(404).json({ message: "User not found" });
+
+  const existing = await User.findOne({ secretKey });
+  if (existing && existing._id.toString() !== req.user._id.toString()) {
+    return res.status(400).json({ message: "Secret key already in use." });
   }
 
   user.secretKey = secretKey;
@@ -123,30 +113,37 @@ router.put("/update-secret", protect, async (req, res) => {
   });
 });
 
-router.put("/secret-key", protect, async (req, res) => {
-  const user = await User.findById(req.user._id);
-  if (!user) return res.status(404).json({ message: "User not found" });
+// 🔍 Search users
+router.get("/", protect, async (req, res) => {
+  const keyword = req.query.search
+    ? {
+        $or: [
+          { name: { $regex: req.query.search, $options: "i" } },
+          { email: { $regex: req.query.search, $options: "i" } },
+        ],
+      }
+    : {};
 
-  user.secretKey = req.body.secretKey;
-  await user.save();
-
-  res.status(200).json({ message: "Secret key updated", secretKey: user.secretKey });
-});
-
-
-// Add this to userRoutes.js
-router.get("/with-secret-key", protect, async (req, res) => {
   try {
-    const users = await User.find({
-      secretKey: { $ne: null },
-      _id: { $ne: req.user._id },
-    }).select("name email");
-
+    const users = await User.find(keyword).find({ _id: { $ne: req.user._id } });
     res.json(users);
-  } catch (error) {
-    res.status(500).json({ message: "Failed to fetch users with secret key" });
+  } catch (err) {
+    res.status(500).json({ message: "Search failed", error: err.message });
   }
 });
 
+// ✅ GET users with secret keys (for dropdown)
+router.get("/with-secret-key", protect, async (req, res) => {
+  try {
+    const users = await User.find({
+      secretKey: { $exists: true, $ne: "" },
+      _id: { $ne: req.user._id },
+    }).select("name email pic");
+
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ message: "Failed to fetch secret contacts" });
+  }
+});
 
 module.exports = router;

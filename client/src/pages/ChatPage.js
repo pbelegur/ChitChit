@@ -3,10 +3,12 @@ import axios from "axios";
 import socket from "../socket";
 import ChatBox from "../components/ChatBox";
 import SearchUsers from "../components/searchUsers";
+import { useNavigate } from "react-router-dom";
 
 const ChatPage = () => {
   const [chats, setChats] = useState([]);
   const [selectedChat, setSelectedChat] = useState(null);
+  const navigate = useNavigate();
 
   const fetchChats = async () => {
     try {
@@ -59,6 +61,7 @@ const ChatPage = () => {
         boxSizing: "border-box",
       }}
     >
+      {/* Left sidebar */}
       <div
         style={{
           flex: 1,
@@ -68,7 +71,24 @@ const ChatPage = () => {
           overflowY: "auto",
         }}
       >
-        <h3>Your Chats</h3>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <h3>Your Chats</h3>
+          <button
+            onClick={() => navigate("/profile")}
+            style={{
+              fontSize: "12px",
+              padding: "5px 10px",
+              marginLeft: "10px",
+              backgroundColor: "#eee",
+              border: "1px solid #ccc",
+              borderRadius: "5px",
+              cursor: "pointer",
+            }}
+          >
+            👤 Profile
+          </button>
+        </div>
+
         <SearchUsers onChatCreated={handleNewChat} />
 
         {chats.map((chat) => {
@@ -105,12 +125,13 @@ const ChatPage = () => {
         })}
       </div>
 
+      {/* Right message panel */}
       <div style={{ flex: 2 }}>
         {selectedChat ? (
           <ChatBox
             selectedChat={selectedChat}
-            refreshChats={fetchChats} // ✅ pass this to propagate updates
-            setSelectedChat={setSelectedChat} // optional if needed
+            refreshChats={fetchChats}
+            setSelectedChat={setSelectedChat}
           />
         ) : (
           <div style={{ textAlign: "center", marginTop: "100px" }}>
